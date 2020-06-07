@@ -1,0 +1,8 @@
+[package]
+name = "smartdiff"
+version = "0.0.1"
+edition = "2018"
+
+[dependencies]
+serde_json = "1.0"
+text_io = "0.1.8"
