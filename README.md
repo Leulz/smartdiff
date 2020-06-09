@@ -11,4 +11,4 @@ to [install it](https://crates.io/).
 2. The binary will be located within `target/debug`, named `smartdiff`.
 3. From the project's root, run: `git difftool --extcmd=target/debug/smartdiff`.
 
-That should do it.
+That should do it. It only works for changes within smartdiff's project. As I said, very rough on the edges.
