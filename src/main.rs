@@ -45,7 +45,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     
     let args: Vec<String> = env::args().collect();
     let local_path = &args[1];
-    let remote_path = format!("{}/{}", manifest_dir, &args[2]); // for some ungodly reason, REMOTE is being passed by git-difftool as the local file, and not as a path to a temporary file, even though that's what the manual says that it should pass
+    let remote_path = &args[2];
     let base = env::var("BASE")?;
     let file_extension = extension_from_filename(&base);
 
