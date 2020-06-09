@@ -9,6 +9,8 @@ although it is still very rough on the edges:
 1. Clone the repository, and run `cargo build` inside it. If you do not have cargo, you need
 to [install it](https://crates.io/).
 2. The binary will be located within `target/debug`, named `smartdiff`.
-3. From the project's root, run: `git difftool --extcmd=target/debug/smartdiff`.
+3. Run `export SMARTDIFF_PATH=<full_path_to_smartdiff_directory>`, substituting the placeholder with
+the actual path to the project's root.
+4. Go to a Git repository, and run: `git difftool --extcmd="$SMARTDIFF_PATH/target/debug/smartdiff"`.
 
-That should do it. It only works for changes within smartdiff's project. As I said, very rough on the edges.
+That should do it, although it doesn't do much for now.
