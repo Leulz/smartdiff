@@ -41,13 +41,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     let file_extension = extension_from_filename(&base);
 
     if !is_supported_format(file_extension) {
+        // TODO should check for diff tools in computer and use what's available.
         println!("{}", Red.paint(format!("{} is not a supported file, we recommend using this tool only for the supported formats. Below is a normal sdiff.", base)));
-        call_sdiff(&local_path, &remote_path);
+        call_sdiff(&local_path, &remote_path)?;
     } else {
-        println!("{}", base);
+        formats::json::read_json(local_path, &remote_path)?;
     }
-    
-    // read_json(local_path, &remote_path)?;
 
     Ok(())
 }
