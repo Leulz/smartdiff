@@ -1,5 +1,8 @@
 // To be used by git-difftool using extcmd flag
 
+mod json;
+use crate::json::json::read_json;
+
 use std::env;
 use std::error::Error;
 use std::path::Path;
@@ -8,10 +11,7 @@ use std::collections::HashSet;
 use std::process::Command;
 use ansi_term::Colour::Red;
 
-mod formats;
-
-#[cfg(test)] #[macro_use]
-extern crate assert_matches;
+use smartdiff::formats;
 
 fn is_supported_format(format: &str) -> bool {
     let supported_formats : HashSet<String> = formats::formats::get_supported_formats();
@@ -48,7 +48,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("{}", Red.paint(format!("{} is not a supported file, we recommend using this tool only for the supported formats. Below is a normal sdiff.", base)));
         call_sdiff(&local_path, &remote_path)?;
     } else {
-        formats::json::read_json(local_path, &remote_path)?;
+        read_json(local_path, &remote_path)?;
     }
 
     Ok(())

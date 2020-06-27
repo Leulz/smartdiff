@@ -1,103 +1,50 @@
 use serde_json::map::Map;
 use serde_json::Value;
 
-use std::error::Error;
-use std::fs::File;
-use std::io::BufReader;
-
-use ansi_term::Colour::{Green, Red};
-
-const LOCAL: &str = "local";
-const REMOTE: &str = "remote";
-
-macro_rules! local_remote_choice {
-    ($origin:expr, $local:expr, $remote:expr) => {
-        match $origin {
-            LOCAL => $local,
-            REMOTE => $remote,
-            _ => panic!("Invalid origin! Must be either LOCAL or REMOTE."),
-        }
-    };
-}
-
-fn get_diff_symbol(origin: &str) -> Result<&str, Box<dyn Error>> {
-    let symbol = local_remote_choice!(origin, "-", "+");
-
-    Ok(symbol)
-}
-
-fn get_diff_color(origin: &str) -> Result<ansi_term::Colour, Box<dyn Error>> {
-    let color = local_remote_choice!(origin, Red, Green);
-
-    Ok(color)
-}
-
-fn get_formatted_diff<'a>(
-    origin: &'a str,
+fn _find_missing_keys<'a>(
+    m1: &'a Map<String, Value>,
+    m2: &'a Map<String, Value>,
     path: &'a Vec<String>,
-    values: Option<&Value>,
-) -> Result<ansi_term::ANSIString<'a>, Box<dyn Error>> {
-    let diff_symbol = get_diff_symbol(origin)?;
-    let diff_color = get_diff_color(origin)?;
-
-    match values {
-        Some(v) => Ok(diff_color.paint(format!("{} {:?} {}", diff_symbol, path, v))),
-        None => Ok(diff_color.paint(format!("{} {:?}", diff_symbol, path))),
-    }
-}
-
-fn print_missing_key(origin: &str, path: &Vec<String>) -> () {
-    match get_formatted_diff(origin, path, None) {
-        Ok(diff) => println!("{}", diff),
-        Err(e) => println!("Error found when calculating diff: {}", e),
-    }
-}
-
-fn find_missing_keys(
-    m1: &Map<String, Value>,
-    m2: &Map<String, Value>,
-    path: &Vec<String>,
-    m1_origin: &str,
-) -> () {
+) -> Vec<Vec<String>> {
+    let mut diff = Vec::new();
+    
     let mut path_copy = path.to_vec();
     for (k, v) in m1 {
         path_copy.push(k.to_string());
         if !m2.contains_key(k) {
-            print_missing_key(&m1_origin, &path_copy);
+            diff.push(path_copy.clone());
         } else if v.is_object() && m2[k].is_object() {
-            find_missing_keys(
+            _find_missing_keys(
                 m1[k].as_object().unwrap(),
                 m2[k].as_object().unwrap(),
                 &path_copy,
-                m1_origin,
             );
         }
     }
+    diff
 }
 
-fn print_changed_value(path: &Vec<String>, local: &Value, remote: &Value) -> () {
-    match get_formatted_diff(LOCAL, path, Some(local)) {
-        Ok(diff) => println!("{}", diff),
-        Err(e) => println!("Error found when calculating diff: {}", e),
-    }
-    match get_formatted_diff(REMOTE, path, Some(remote)) {
-        Ok(diff) => println!("{}", diff),
-        Err(e) => println!("Error found when calculating diff: {}", e),
-    }
+pub fn find_missing_keys<'a>(
+    m1: &'a Map<String, Value>,
+    m2: &'a Map<String, Value>,
+) -> Vec<Vec<String>> {
+    _find_missing_keys(&m1, &m2, &Vec::new())
 }
 
-fn find_changed_values(
-    local: &Map<String, Value>,
-    remote: &Map<String, Value>,
-    path: &Vec<String>,
-) -> () {
+fn _find_changed_values<'a>(
+    local: &'a Map<String, Value>,
+    remote: &'a Map<String, Value>,
+    path: &'a Vec<String>,
+) -> Vec<(Vec<String>, Value, Value)> {
+    let mut diff = Vec::new();
+
     for (k, local_v) in local {
         if remote.contains_key(k) {
             let remote_v = &remote[k];
             if local_v.is_object() && remote_v.is_object() {
                 let mut path_copy_nested = path.to_vec();
                 path_copy_nested.push(k.to_string());
-                find_changed_values(
+                _find_changed_values(
                     local_v.as_object().unwrap(),
                     remote_v.as_object().unwrap(),
                     &path_copy_nested,
@@ -105,67 +52,17 @@ fn find_changed_values(
             } else if *local_v != remote[k] {
                 let mut path_copy = path.to_vec();
                 path_copy.push(k.to_string());
-                print_changed_value(&path_copy, local_v, &remote[k]);
+                diff.push((path_copy.clone(), local_v.clone(), remote_v.clone()));
             }
         }
     }
+
+    diff
 }
 
-fn calculate_diff(json1: &Map<String, Value>, json2: &Map<String, Value>) -> () {
-    find_missing_keys(json1, json2, &Vec::new(), LOCAL);
-    find_missing_keys(json2, json1, &Vec::new(), REMOTE);
-    find_changed_values(json1, json2, &Vec::new());
-}
-
-// TODO better error handling when JSON file has invalid JSON
-pub fn read_json(local_path: &str, remote_path: &str) -> Result<(), Box<dyn Error>> {
-    let local_file = File::open(local_path)?;
-    let local_reader = BufReader::new(local_file);
-
-    let remote_file = File::open(remote_path)?;
-    let remote_reader = BufReader::new(remote_file);
-
-    let local_v: Value = serde_json::from_reader(local_reader)?;
-    let remote_v: Value = serde_json::from_reader(remote_reader)?;
-
-    local_v.as_object().and_then(|local_v| {
-        remote_v
-            .as_object()
-            .map(|remote_v| calculate_diff(local_v, remote_v))
-    });
-
-    Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn get_diff_symbol_test() {
-        let local_diff_symbol = get_diff_symbol(LOCAL);
-        assert_matches!(local_diff_symbol, Ok("-"));
-        let remote_diff_symbol = get_diff_symbol(REMOTE);
-        assert_matches!(remote_diff_symbol, Ok("+"));
-    }
-
-    #[test]
-    #[should_panic(expected="Invalid origin! Must be either LOCAL or REMOTE.")]
-    fn get_diff_symbol_panic_test() {
-        let _panic = get_diff_symbol("invalid");
-    }
-
-    #[test]
-    fn get_diff_color_test() {
-        let local_diff_color = get_diff_color(LOCAL);
-        assert_matches!(local_diff_color, Ok(Red));
-        let remote_diff_color = get_diff_color(REMOTE);
-        assert_matches!(remote_diff_color, Ok(Green));
-    }
-
-    #[test]
-    #[should_panic(expected="Invalid origin! Must be either LOCAL or REMOTE.")]
-    fn get_diff_color_panic_test() {
-        let _panic = get_diff_color("invalid");
-    }
+pub fn find_changed_values<'a>(
+    local: &'a Map<String, Value>,
+    remote: &'a Map<String, Value>
+) -> Vec<(Vec<String>, Value, Value)> {
+    _find_changed_values(&local, &remote, &Vec::new())
 }
