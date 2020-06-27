@@ -10,22 +10,24 @@ use ansi_term::Colour::{Green, Red};
 const LOCAL: &str = "local";
 const REMOTE: &str = "remote";
 
-fn get_diff_symbol(origin: &str) -> Result<&str, Box<dyn Error>> {
-    let symbol = match origin {
-        LOCAL => "-",
-        REMOTE => "+",
-        _ => panic!("Invalid origin! Must be either LOCAL or REMOTE."),
+macro_rules! local_remote_choice {
+    ($origin:expr, $local:expr, $remote:expr) => {
+        match $origin {
+            LOCAL => $local,
+            REMOTE => $remote,
+            _ => panic!("Invalid origin! Must be either LOCAL or REMOTE."),
+        }
     };
+}
+
+fn get_diff_symbol(origin: &str) -> Result<&str, Box<dyn Error>> {
+    let symbol = local_remote_choice!(origin, "-", "+");
 
     Ok(symbol)
 }
 
 fn get_diff_color(origin: &str) -> Result<ansi_term::Colour, Box<dyn Error>> {
-    let color = match origin {
-        LOCAL => Red,
-        REMOTE => Green,
-        _ => panic!("Invalid origin! Must be either LOCAL or REMOTE."),
-    };
+    let color = local_remote_choice!(origin, Red, Green);
 
     Ok(color)
 }
@@ -133,4 +135,37 @@ pub fn read_json(local_path: &str, remote_path: &str) -> Result<(), Box<dyn Erro
     });
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn get_diff_symbol_test() {
+        let local_diff_symbol = get_diff_symbol(LOCAL);
+        assert_matches!(local_diff_symbol, Ok("-"));
+        let remote_diff_symbol = get_diff_symbol(REMOTE);
+        assert_matches!(remote_diff_symbol, Ok("+"));
+    }
+
+    #[test]
+    #[should_panic(expected="Invalid origin! Must be either LOCAL or REMOTE.")]
+    fn get_diff_symbol_panic_test() {
+        let _panic = get_diff_symbol("invalid");
+    }
+
+    #[test]
+    fn get_diff_color_test() {
+        let local_diff_color = get_diff_color(LOCAL);
+        assert_matches!(local_diff_color, Ok(Red));
+        let remote_diff_color = get_diff_color(REMOTE);
+        assert_matches!(remote_diff_color, Ok(Green));
+    }
+
+    #[test]
+    #[should_panic(expected="Invalid origin! Must be either LOCAL or REMOTE.")]
+    fn get_diff_color_panic_test() {
+        let _panic = get_diff_color("invalid");
+    }
 }
