@@ -13,6 +13,9 @@ use ansi_term::Colour::Red;
 
 use smartdiff::formats;
 
+#[cfg(test)] #[macro_use]
+extern crate assert_matches;
+
 fn is_supported_format(format: &str) -> bool {
     let supported_formats : HashSet<String> = formats::formats::get_supported_formats();
     supported_formats.contains(format)

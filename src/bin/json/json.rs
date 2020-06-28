@@ -3,8 +3,8 @@ use std::fs::File;
 use std::io::BufReader;
 
 use ansi_term::Colour::{Green, Red};
-use serde_json::Value;
 use serde_json::map::Map;
+use serde_json::Value;
 
 use crate::formats::json::*;
 
@@ -14,21 +14,21 @@ const REMOTE: &str = "remote";
 macro_rules! local_remote_choice {
     ($origin:expr, $local:expr, $remote:expr) => {
         match $origin {
-            LOCAL => $local,
-            REMOTE => $remote,
-            _ => panic!("Invalid origin! Must be either LOCAL or REMOTE."),
+            LOCAL => Ok($local),
+            REMOTE => Ok($remote),
+            _ => Err("Invalid origin! Must be either LOCAL or REMOTE."),
         }
     };
 }
 
 fn get_diff_symbol(origin: &str) -> Result<&str, Box<dyn Error>> {
-    let symbol = local_remote_choice!(origin, "-", "+");
+    let symbol = local_remote_choice!(origin, "-", "+")?;
 
     Ok(symbol)
 }
 
 fn get_diff_color(origin: &str) -> Result<ansi_term::Colour, Box<dyn Error>> {
-    let color = local_remote_choice!(origin, Red, Green);
+    let color = local_remote_choice!(origin, Red, Green)?;
 
     Ok(color)
 }
@@ -121,12 +121,9 @@ mod tests {
         assert_matches!(local_diff_symbol, Ok("-"));
         let remote_diff_symbol = get_diff_symbol(REMOTE);
         assert_matches!(remote_diff_symbol, Ok("+"));
-    }
-
-    #[test]
-    #[should_panic(expected = "Invalid origin! Must be either LOCAL or REMOTE.")]
-    fn get_diff_symbol_panic_test() {
-        let _panic = get_diff_symbol("invalid");
+        let invalid_diff_symbol = get_diff_symbol("invalid");
+        let expected_err = "Err should have happened: Invalid origin! Must be either LOCAL or REMOTE.";
+        assert!(invalid_diff_symbol.is_err(), expected_err);
     }
 
     #[test]
@@ -135,11 +132,11 @@ mod tests {
         assert_matches!(local_diff_color, Ok(Red));
         let remote_diff_color = get_diff_color(REMOTE);
         assert_matches!(remote_diff_color, Ok(Green));
-    }
-
-    #[test]
-    #[should_panic(expected = "Invalid origin! Must be either LOCAL or REMOTE.")]
-    fn get_diff_color_panic_test() {
-        let _panic = get_diff_color("invalid");
+        let invalid_diff_color = get_diff_color("invalid");
+        let expected_err = "Err should have happened: Invalid origin! Must be either LOCAL or REMOTE.";
+        assert!(
+            invalid_diff_color.is_err(),
+            expected_err
+        );
     }
 }
