@@ -81,6 +81,7 @@ fn print_missing_keys(json1: &Map<String, Value>, json2: &Map<String, Value>) {
 
 fn print_changed_values(json1: &Map<String, Value>, json2: &Map<String, Value>) {
     let changed_values = find_changed_values(json1, json2);
+
     for (path, local_v, remote_v) in changed_values {
         print_changed_value(&path, &local_v, &remote_v);
     }
