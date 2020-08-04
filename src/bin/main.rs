@@ -1,5 +1,3 @@
-// To be used by git-difftool using extcmd flag
-
 mod json;
 use crate::json::json::read_json;
 
@@ -8,8 +6,6 @@ use std::error::Error;
 use std::path::Path;
 use std::ffi::OsStr;
 use std::collections::HashSet;
-use std::process::Command;
-use ansi_term::Colour::Red;
 
 use smartdiff::formats;
 
@@ -32,12 +28,6 @@ fn extension_from_filename(filename: &str) -> &str {
     }
 }
 
-fn call_sdiff(local_path : &str, remote_path : &str) -> Result<(), Box<dyn Error>> {
-    let output = Command::new("sdiff").arg(&local_path).arg(&remote_path).output()?;
-    println!("{}", String::from_utf8_lossy(&output.stdout));
-    Ok(())
-}
-
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();
     let local_path = &args[1];
@@ -46,11 +36,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let base = env::var("BASE")?;
     let file_extension = extension_from_filename(&base);
 
-    if !is_supported_format(file_extension) {
-        // TODO should check for diff tools in computer and use what's available.
-        println!("{}", Red.paint(format!("{} is not a supported file, we recommend using this tool only for the supported formats. Below is a normal sdiff.", base)));
-        call_sdiff(&local_path, &remote_path)?;
-    } else {
+    if is_supported_format(file_extension) {
+        println!("{}", base);
         read_json(local_path, &remote_path)?;
     }
 
