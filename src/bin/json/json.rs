@@ -88,7 +88,9 @@ fn print_changed_values(json1: &Map<String, Value>, json2: &Map<String, Value>) 
 }
 
 fn calculate_diff(json1: &Map<String, Value>, json2: &Map<String, Value>) -> () {
+    println!("Keys added/removed:");
     print_missing_keys(json1, json2);
+    println!("Keys changed:");
     print_changed_values(json1, json2);
 }
 

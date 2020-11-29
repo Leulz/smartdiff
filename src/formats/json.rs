@@ -40,11 +40,7 @@ fn _find_changed_values<'a>(
     for (k, local_v) in local {
         if remote.contains_key(k) {
             let remote_v = &remote[k];
-            if *local_v != remote[k] {
-                let mut path_copy = path.to_vec();
-                path_copy.push(k.to_string());
-                diff.push((path_copy.clone(), local_v.clone(), remote_v.clone()));
-            } else if local_v.is_object() && remote_v.is_object() {
+            if local_v.is_object() && remote_v.is_object() {
                 let mut path_copy_nested = path.to_vec();
                 path_copy_nested.push(k.to_string());
                 let level_diff = _find_changed_values(
@@ -53,6 +49,10 @@ fn _find_changed_values<'a>(
                             &path_copy_nested,
                         );
                 diff.extend(level_diff);
+            } else if *local_v != remote[k] {
+                let mut path_copy = path.to_vec();
+                path_copy.push(k.to_string());
+                diff.push((path_copy.clone(), local_v.clone(), remote_v.clone()));
             }
         }
     }
